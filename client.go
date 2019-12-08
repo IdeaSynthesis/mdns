@@ -299,7 +299,7 @@ func (c *client) setInterface(iface *net.Interface, loopback bool) error {
 		}
 	}
 	if c.ipv6MulticastConn != nil {
-		p3 = ipv6.NewPacketConn(c.ipv6MulticastConn)
+		p3 := ipv6.NewPacketConn(c.ipv6MulticastConn)
 		if err := p3.JoinGroup(iface, &net.UDPAddr{IP: mdnsGroupIPv6}); err != nil {
 			return err
 		}
