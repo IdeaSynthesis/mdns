@@ -18,14 +18,14 @@ import (
 type ServiceEntry struct {
 	Name       string
 	Host       string
-	AddrV4     net.IP
-	AddrV6     net.IP
+	AddrV4     []net.IP
+	AddrV6     []net.IP
 	Port       int
 	Info       string
 	InfoFields []string
 	TTL        int
 
-	Addr net.IP // @Deprecated
+	Addr []net.IP // @Deprecated
 
 	hasTXT bool
 	sent   bool
@@ -480,19 +480,25 @@ func messageToEntry(m *dns.Msg, inprogress map[string]*ServiceEntry) *ServiceEnt
 		case *dns.A:
 			// Pull out the IP
 			inp = ensureName(inprogress, rr.Hdr.Name)
-			if inp.complete() {
-				continue
+			if inp.Addr == nil {
+				inp.Addr = make([]net.IP, 0)
 			}
-			inp.Addr = rr.A // @Deprecated
-			inp.AddrV4 = rr.A
+			inp.Addr = append(inp.Addr, rr.A)
+			if inp.AddrV4 == nil {
+				inp.AddrV4 = make([]net.IP, 0)
+			}
+			inp.AddrV4 = append(inp.AddrV4, rr.A)
 		case *dns.AAAA:
 			// Pull out the IP
 			inp = ensureName(inprogress, rr.Hdr.Name)
-			if inp.complete() {
-				continue
+			if inp.Addr == nil {
+				inp.Addr = make([]net.IP, 0)
 			}
-			inp.Addr = rr.AAAA // @Deprecated
-			inp.AddrV6 = rr.AAAA
+			inp.Addr = append(inp.Addr, rr.AAAA)
+			if inp.AddrV6 == nil {
+				inp.AddrV6 = make([]net.IP, 0)
+			}
+			inp.AddrV6 = append(inp.AddrV6, rr.AAAA)
 		}
 
 		if inp != nil {
