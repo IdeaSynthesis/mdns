@@ -284,22 +284,28 @@ func (c *client) setInterface(iface *net.Interface, loopback bool) error {
 	if err := p.JoinGroup(iface, &net.UDPAddr{IP: mdnsGroupIPv4}); err != nil {
 		return err
 	}
-	p2 := ipv6.NewPacketConn(c.ipv6UnicastConn)
-	if err := p2.JoinGroup(iface, &net.UDPAddr{IP: mdnsGroupIPv6}); err != nil {
-		return err
-	}
 	p = ipv4.NewPacketConn(c.ipv4MulticastConn)
 	if err := p.JoinGroup(iface, &net.UDPAddr{IP: mdnsGroupIPv4}); err != nil {
 		return err
 	}
-	p2 = ipv6.NewPacketConn(c.ipv6MulticastConn)
-	if err := p2.JoinGroup(iface, &net.UDPAddr{IP: mdnsGroupIPv6}); err != nil {
-		return err
-	}
-
 	if loopback {
 		p.SetMulticastLoopback(true)
-		p2.SetMulticastLoopback(true)
+	}
+
+	if c.ipv6UnicastConn != nil {
+		p2 := ipv6.NewPacketConn(c.ipv6UnicastConn)
+		if err := p2.JoinGroup(iface, &net.UDPAddr{IP: mdnsGroupIPv6}); err != nil {
+			return err
+		}
+	}
+	if c.ipv6MulticastConn != nil {
+		p3 = ipv6.NewPacketConn(c.ipv6MulticastConn)
+		if err := p3.JoinGroup(iface, &net.UDPAddr{IP: mdnsGroupIPv6}); err != nil {
+			return err
+		}
+		if loopback {
+			p3.SetMulticastLoopback(true)
+		}
 	}
 
 	return nil
@@ -313,9 +319,13 @@ func (c *client) query(params *QueryParam) error {
 	// Start listening for response packets
 	msgCh := make(chan *dns.Msg, 32)
 	go c.recv(c.ipv4UnicastConn, msgCh)
-	go c.recv(c.ipv6UnicastConn, msgCh)
 	go c.recv(c.ipv4MulticastConn, msgCh)
-	go c.recv(c.ipv6MulticastConn, msgCh)
+	if c.ipv6UnicastConn != nil {
+		go c.recv(c.ipv6UnicastConn, msgCh)
+	}
+	if c.ipv6MulticastConn != nil {
+		go c.recv(c.ipv6MulticastConn, msgCh)
+	}
 
 	// Send the query
 	m := new(dns.Msg)
